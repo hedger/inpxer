@@ -42,11 +42,12 @@ Set `INPX_FILE` to the path of your `.inpx` file (mounted inside the container).
 
 ```shell
 docker run --rm -it \
-	-e INPX_FILE=/import/file.inpx \
-	-v "${PWD}":/import \# mount folder with .inpx
-	-v <path to data storage>:/data \# config + index live here
+	-e INPX_FILE=/import/flibusta_fb2_local.inpx \
+	-v ./import/:/import \
+	-v ./data/:/data \
 	-p 8080:8080 \
 	ghcr.io/hedger/inpxer:latest
+	# If you built locally instead, use: inpxer:latest
 ```
 
 Optional flags via env vars:
@@ -60,17 +61,31 @@ You can still run import explicitly and then start the server:
 ```shell
 # Import (may delete existing index unless PARTIAL_IMPORT is used)
 docker run --rm -it \
-	-v "${PWD}":/import \
-	-v <path to data storage>:/data \
+	-v ./import/:/import \
+	-v ./data/:/data \
 	ghcr.io/hedger/inpxer:latest \
 	inpxer import /import/file.inpx
 
 # Start server
 docker run -it \
 	-p 8080:8080 \
-	-v <path to data storage>:/data \
+	-v ./data/:/data \
 	ghcr.io/hedger/inpxer:latest
 ```
+
+#### Data volumes and layout
+
+The container expects a single writable volume mounted at `/data` that contains:
+
+- `/data/inpxer.toml` — configuration file. See `inpxer-example.toml` for all options. Key fields:
+	- `index_path = "/data/index"` (default in example)
+	- `library_path = "/data/library"` — where your actual book files are stored
+- `/data/index` — the index directory created by `inpxer` (bleve and badger/bolt subfolders). This can be large.
+- `/data/library` — your library files (fb2, fb2.zip, epub, etc.). Required for downloads to work via OPDS/web.
+
+Additionally, for first-run auto-import, mount a read-only helper volume at `/import` pointing to the directory that contains your `.inpx` file and set `INPX_FILE=/import/yourfile.inpx`.
+
+On subsequent runs (when you don’t want to re-index), you can omit the `/import` volume and the `INPX_FILE` environment variable.
 
 #### Permissions note
 
@@ -97,8 +112,8 @@ services:
 		ports:
 			- "8080:8080"
 		volumes:
-			- ./data:/data
-			- ./library:/import
+				- ./data:/data # contains inpxer.toml, index/, and library/ (as configured)
+				- ./import:/import # folder with your .inpx file (for first run)
 		# Uncomment to avoid chown inside container if host dir is pre-owned by 10000:10000
 		# user: "10000:10000"
 ```

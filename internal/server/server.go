@@ -36,6 +36,8 @@ func Run(cfg *config.MyConfig, isDevMode bool, version string) error {
 	r.Use(middleware.Logger)
 	r.Use(middleware.CleanPath)
 	r.Use(middleware.StripSlashes)
+	// Serve HEAD as GET without body so clients that probe with HEAD (e.g., KOReader) don't get 405
+	r.Use(middleware.GetHead)
 	r.Use(middleware.Compress(5, "application/fb2"))
 	r.Use(middleware.SetHeader("Server", "inpxer/"+version))
 
@@ -58,6 +60,8 @@ func Run(cfg *config.MyConfig, isDevMode bool, version string) error {
 
 	web := NewWebHandler(cfg, t)
 	r.Get("/", web.Home)
+	// Some clients may probe root with HEAD
+	r.Head("/", web.Home)
 	r.Get("/search", web.Search)
 
 	download := NewDownloadHandler(cfg)
@@ -68,9 +72,12 @@ func Run(cfg *config.MyConfig, isDevMode bool, version string) error {
 
 	opds := NewOpdsHandler(cfg, t)
 	r.Get("/opensearch.xml", opds.OpenSearchDescription)
+	r.Head("/opensearch.xml", opds.OpenSearchDescription)
 	r.Route("/opds", func(r chi.Router) {
 		r.Get("/", opds.Root)
+		r.Head("/", opds.Root)
 		r.Get("/search", opds.Search)
+		r.Head("/search", opds.Search)
 	})
 
 	err = http.ListenAndServe(cfg.Listen, r)
