@@ -9,6 +9,8 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+    "os"
+    "path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -139,11 +141,11 @@ func (h *OpdsHandler) Search(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OpdsHandler) serveFeed(w http.ResponseWriter, r *http.Request, id string, entries []*opds.Entry, links []opds.Link, totalResults uint64) {
-	now := time.Now()
+	updated := h.getUpdatedTime()
 	feed := opds.NewFeed()
 	feed.ID = id
 	feed.Title = h.cfg.Title
-	feed.Updated = &now
+	feed.Updated = &updated
 	feed.Entry = entries
 	feed.ItemsPerPage = PageSize
 	feed.TotalResults = totalResults
@@ -172,7 +174,29 @@ func (h *OpdsHandler) serveFeed(w http.ResponseWriter, r *http.Request, id strin
 	content, _ := xml.MarshalIndent(feed, "  ", "    ")
 	w.Header().Add("Content-Type", opds.ContentType)
 	content = append([]byte(xml.Header), content...)
-	http.ServeContent(w, r, "feed.xml", time.Now(), bytes.NewReader(content))
+	http.ServeContent(w, r, "feed.xml", updated, bytes.NewReader(content))
+}
+
+// getUpdatedTime attempts to read the import timestamp written by the container entrypoint.
+// It supports either seconds since epoch or RFC3339 in the file.
+// Falls back to server.BuildDate when not available.
+func (h *OpdsHandler) getUpdatedTime() time.Time {
+	markerPath := filepath.Join(h.cfg.IndexPath, ".inpx-updated")
+	b, err := os.ReadFile(markerPath)
+	if err == nil {
+		s := strings.TrimSpace(string(b))
+		if s != "" {
+			// Try epoch seconds first
+			if secs, err := strconv.ParseInt(s, 10, 64); err == nil && secs > 0 {
+				return time.Unix(secs, 0).UTC()
+			}
+			// Try RFC3339
+			if t, err := time.Parse(time.RFC3339, s); err == nil {
+				return t
+			}
+		}
+	}
+	return BuildDate
 }
 
 func (h *OpdsHandler) makeBooksList(books []*model.Book) []*opds.Entry {

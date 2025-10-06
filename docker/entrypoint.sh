@@ -47,13 +47,12 @@ if [ -n "$INPX_FILE" ]; then
   # Read version from .inpx (zip) version.info; try unzip -p, fallback to busybox unzip
   INPX_VERSION=$(unzip -p "$INPX_FILE" version.info 2>/dev/null | tr -d '\r' | sed -n '1p' | tr -d '[:space:]' || true)
   if [ -z "$INPX_VERSION" ]; then
-    warn "Could not read version.info from $INPX_FILE; will reindex"
-    needs_index=true
+    warn "Could not read version.info from $INPX_FILE; proceeding without version check"
   fi
 
   # Check stored index version marker
   INDEX_VERSION_FILE="$INDEX_DIR/.inpx-version"
-  if [ ! -d "$INDEX_DIR/bleve" ] || [ ! -d "$INDEX_DIR/badger" ] && [ ! -d "$INDEX_DIR/bolt" ]; then
+  if [ ! -d "$INDEX_DIR/bleve" ] || ( [ ! -d "$INDEX_DIR/badger" ] && [ ! -d "$INDEX_DIR/bolt" ] ); then
     needs_index=true
   elif [ -n "$INPX_VERSION" ]; then
     if [ ! -f "$INDEX_VERSION_FILE" ]; then
@@ -74,11 +73,7 @@ if [ -n "$INPX_FILE" ]; then
     su-exec "$APP_USER":"$APP_GROUP" /bin/inpxer import "$INPX_FILE" \
       $( [ "$KEEP_DELETED" = true ] && echo "--keep-deleted" ) \
       $( [ "$PARTIAL_IMPORT" = true ] && echo "--partial" )
-    # Save version marker
-    if [ -n "$INPX_VERSION" ]; then
-      echo "$INPX_VERSION" > "$INDEX_VERSION_FILE"
-      chown "$APP_USER":"$APP_GROUP" "$INDEX_VERSION_FILE" || true
-    fi
+    # Markers (.inpx-version, .inpx-updated) are written by the importer itself
   else
     log "Existing index at $INDEX_DIR is up-to-date (version: ${INPX_VERSION:-unknown})"
   fi

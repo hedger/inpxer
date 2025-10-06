@@ -1,9 +1,11 @@
 package indexer
 
 import (
+	"archive/zip"
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/chelnak/ysmrr"
@@ -111,6 +113,51 @@ func Run(cfg *config.MyConfig, filename string, keepDeleted, partial bool) error
 	s.Complete()
 	elapsed := time.Since(start)
 	log.Printf("Processed: %d, imported: %d, duplicates: %d, deleted: %d. (Took %s)", recordsCount, recordsCount-duplicatesCount-deletedCount, duplicatesCount, deletedCount, elapsed)
+	// Write markers for OPDS <updated> and version detection
+	// Prefer the timestamp of version.info inside the INPX archive
+	if vt, terr := getVersionInfoTime(filename); terr == nil {
+		updatedPath := filepath.Join(cfg.IndexPath, ".inpx-updated")
+		updatedContent := []byte(fmt.Sprintf("%d", vt.Unix()))
+		if werr := os.WriteFile(updatedPath, updatedContent, 0o644); werr != nil {
+			log.Printf("Warning: cannot write %s: %v", updatedPath, werr)
+		}
+	} else if fi, statErr := os.Stat(filename); statErr == nil { // fallback to file mtime
+		updatedPath := filepath.Join(cfg.IndexPath, ".inpx-updated")
+		updatedContent := []byte(fmt.Sprintf("%d", fi.ModTime().Unix()))
+		if werr := os.WriteFile(updatedPath, updatedContent, 0o644); werr != nil {
+			log.Printf("Warning: cannot write %s: %v", updatedPath, werr)
+		}
+	}
+	// Store INPX version string from collection
+	if collection != nil && collection.Version != "" {
+		versionPath := filepath.Join(cfg.IndexPath, ".inpx-version")
+		if werr := os.WriteFile(versionPath, []byte(collection.Version), 0o644); werr != nil {
+			log.Printf("Warning: cannot write %s: %v", versionPath, werr)
+		}
+	}
 
 	return nil
+}
+
+// getVersionInfoTime opens the INPX zip and returns the Modified time of version.info
+func getVersionInfoTime(inpxPath string) (time.Time, error) {
+	zr, err := zip.OpenReader(inpxPath)
+	if err != nil {
+		return time.Time{}, err
+	}
+	defer zr.Close()
+	for _, f := range zr.File {
+		if f.Name == "version.info" {
+			// zip.File.Modified is a time.Time with best-effort TZ info
+			if !f.Modified.IsZero() {
+				return f.Modified.UTC(), nil
+			}
+			// Fallback: use FileHeader.Modified if needed (same in recent Go)
+			if !f.FileHeader.Modified.IsZero() {
+				return f.FileHeader.Modified.UTC(), nil
+			}
+			break
+		}
+	}
+	return time.Time{}, fmt.Errorf("version.info not found or no timestamp")
 }
