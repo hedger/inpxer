@@ -106,6 +106,7 @@ On subsequent runs (when you don’t want to re-index), you can omit the `/impor
 The published Docker image includes [`fb2cng`](https://github.com/rupor-github/fb2cng) (`fbc`), a self-contained FB2 converter. It needs no extra runtime packages and supports:
 
 - `epub` — EPUB 2
+- `epub3.epub` — EPUB 3
 - `kepub.epub` — Kobo EPUB
 - `azw8` — Kindle KFX/AZW8
 - `pdf`
@@ -120,6 +121,12 @@ from = "fb2"
 to = "epub"
 command = "fbc"
 arguments = "convert --to epub2 --output-file {to} {from}"
+
+[[converters]]
+from = "fb2"
+to = "epub3.epub"
+command = "fbc"
+arguments = "convert --to epub3 --output-file {to} {from}"
 
 [[converters]]
 from = "fb2"
@@ -155,7 +162,8 @@ arguments = "convert --to md --output-file {to} {from}"
 Notes:
 
 - These converters only accept FB2 as the source (`from = "fb2"`).
-- `kepub.epub` is intentional: Kobo only recognizes KEPUB files with that suffix.
+- `epub3.epub` and `kepub.epub` are intentional: the doubled extension keeps a readable `.epub` file name while exposing two EPUB flavors side by side.
+- `kepub.epub` is also required by Kobo, which only recognizes KEPUB files with that suffix.
 - Legacy MOBI and true AZW3 are not produced; `azw8` is the modern Kindle format.
 - Standalone (non-Docker) installs must install `fbc` from the [fb2cng releases page](https://github.com/rupor-github/fb2cng/releases) and put it in `PATH`, or omit the converter block.
 - Bundling `fbc` increases the image size by roughly 30–60 MB.

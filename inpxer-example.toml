@@ -39,6 +39,12 @@ full_url = "http://localhost:8080"
 #
 #[[converters]]
 #from = "fb2"
+#to = "epub3.epub"
+#command = "fbc"
+#arguments = "convert --to epub3 --output-file {to} {from}"
+#
+#[[converters]]
+#from = "fb2"
 #to = "kepub.epub"
 #command = "fbc"
 #arguments = "convert --to kepub --output-file {to} {from}"
