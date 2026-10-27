@@ -81,7 +81,7 @@ func serveAction(ctx *cli.Context) error {
 func loadConfig(ctx *cli.Context) error {
 	cfg, err := config.Load()
 	if err != nil {
-		return fmt.Errorf("error loading config %v", err)
+		return fmt.Errorf("error loading config: %w", err)
 	}
 
 	ctx.Context = context.WithValue(ctx.Context, contextConfig, cfg)

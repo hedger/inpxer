@@ -5,7 +5,7 @@ APP_USER="app"
 APP_GROUP="app"
 APP_UID="10000"
 APP_GID="10000"
-INDEX_DIR="/data/index"
+DEFAULT_INDEX_DIR="/data/index"
 
 # Expect path to .inpx provided via INPX_FILE env variable
 INPX_FILE="${INPX_FILE:-}"
@@ -24,6 +24,34 @@ if ! getent group "$APP_GROUP" >/dev/null 2>&1; then
 fi
 if ! id -u "$APP_USER" >/dev/null 2>&1; then
   adduser -S -D -H -u "$APP_UID" -G "$APP_GROUP" "$APP_USER" 2>/dev/null || true
+fi
+
+# Locate config file the same way the binary does
+find_config() {
+  if [ -n "${INPXER_CONFIG:-}" ] && [ -f "$INPXER_CONFIG" ]; then
+    echo "$INPXER_CONFIG"
+    return 0
+  fi
+  for f in "$(pwd)/inpxer.toml" "/data/inpxer.toml" "/inpxer.toml"; do
+    if [ -f "$f" ]; then
+      echo "$f"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Resolve index directory: explicit env wins, then config's index_path, then default
+INDEX_DIR="${INDEX_DIR:-}"
+if [ -z "$INDEX_DIR" ]; then
+  INDEX_DIR="$DEFAULT_INDEX_DIR"
+  if CONFIG_FILE=$(find_config); then
+    CONFIG_INDEX_PATH=$(sed -n "s/^[[:space:]]*index_path[[:space:]]*=[[:space:]]*[\"']\\(.*\\)[\"'].*$/\\1/p" "$CONFIG_FILE" | head -n 1)
+    if [ -n "$CONFIG_INDEX_PATH" ]; then
+      INDEX_DIR="$CONFIG_INDEX_PATH"
+      log "Using index path $INDEX_DIR from $CONFIG_FILE"
+    fi
+  fi
 fi
 
 # Create index directory and ensure write access for app user

@@ -29,7 +29,8 @@ OPDS will be on [http://localhost:8080/opds](http://localhost:8080/opds) by defa
 
 Download [`inpxer-example.toml`](./inpxer-example.toml), rename to `inpxer.toml` and edit to your liking.
 
-inpxer expects config file to be at `/data/inpxer.toml`.
+inpxer expects config file to be at `/data/inpxer.toml`. It is also fine to mount it
+read-only at `/inpxer.toml` or to point at it explicitly with `INPXER_CONFIG`.
 
 Images are published to GitHub Container Registry (GHCR): `ghcr.io/hedger/inpxer`.
 
@@ -82,6 +83,19 @@ The container expects a single writable volume mounted at `/data` that contains:
 	- `library_path = "/data/library"` — where your actual book files are stored
 - `/data/index` — the index directory created by `inpxer` (bleve and badger/bolt subfolders). This can be large.
 - `/data/library` — your library files (fb2, fb2.zip, epub, etc.). Required for downloads to work via OPDS/web.
+
+The config file does not have to live in `/data`. It is searched in this order:
+
+1. `$INPXER_CONFIG` (explicit path, error if it does not exist)
+2. `./inpxer.toml` (working directory — `/home/app` inside the image)
+3. `/data/inpxer.toml`
+4. `/inpxer.toml` (e.g. `-v ./config/inpxer.toml:/inpxer.toml:ro`)
+5. `inpxer.toml` next to the executable
+
+If none is found, startup fails and the error lists every path that was checked.
+
+When `INPX_FILE` is set, the entrypoint uses `index_path` from the config to decide
+whether an import is needed, and stores its `.inpx-version` marker there.
 
 Additionally, for first-run auto-import, mount a read-only helper volume at `/import` pointing to the directory that contains your `.inpx` file and set `INPX_FILE=/import/yourfile.inpx`.
 
