@@ -7,4 +7,10 @@ README.md
 LICENSE
 .vscode
 
+# local run data: indexes, downloaded books, imported .inpx files
+data/
+import/
 tmp/
+inpxer
+*.inpx
+.DS_Store

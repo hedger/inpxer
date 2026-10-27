@@ -5,22 +5,30 @@
 ARG FB2CNG_VERSION=v1.9.4
 
 ## Build
-FROM golang:1.23.1-bullseye AS build
+# Cross-compile from the build platform so the arm64 leg does not run the Go
+# toolchain under QEMU.
+FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm AS build
 ARG VERSION=dev
+ARG TARGETOS=linux
+ARG TARGETARCH
 WORKDIR /go/src/app
 
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+	go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w -X main.version=$VERSION" -o /go/bin/inpxer
+RUN --mount=type=cache,target=/go/pkg/mod \
+	--mount=type=cache,target=/root/.cache/go-build \
+	CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
+	go build -ldflags="-s -w -X main.version=$VERSION" -o /go/bin/inpxer
 
 ## FB2 converter
 # fb2cng publishes static Linux binaries, so download the pinned release for the
 # target architecture instead of building it (the source tree needs generated
 # fonts/dictionaries that are only present in release artifacts).
-FROM --platform=$BUILDPLATFORM alpine:3.20 AS fbc-fetch
+FROM --platform=$BUILDPLATFORM alpine:3.24.3 AS fbc-fetch
 ARG FB2CNG_VERSION
 ARG TARGETARCH
 RUN apk add --no-cache ca-certificates unzip
@@ -41,7 +49,7 @@ RUN wget -q -O /out/LICENSE "https://raw.githubusercontent.com/rupor-github/fb2c
 	&& printf 'fb2cng %s\nhttps://github.com/rupor-github/fb2cng/tree/%s\n' "${FB2CNG_VERSION}" "${FB2CNG_VERSION}" > /out/SOURCE
 
 ## Deploy
-FROM alpine:3.20
+FROM alpine:3.24.3
 
 # Install CA certificates (for HTTPS), timezone data, unzip (to read .inpx version), and su-exec for privilege drop
 RUN apk add --no-cache ca-certificates tzdata unzip su-exec \

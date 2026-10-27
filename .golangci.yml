@@ -1,0 +1,9 @@
+version: "2"
+
+linters:
+  default: standard
+  exclusions:
+    presets:
+      # Ignore the usual "unchecked error" cases on Close/Print/Setenv, which
+      # golangci-lint v1 excluded by default and v2 no longer does.
+      - std-error-handling

@@ -152,10 +152,6 @@ func getVersionInfoTime(inpxPath string) (time.Time, error) {
 			if !f.Modified.IsZero() {
 				return f.Modified.UTC(), nil
 			}
-			// Fallback: use FileHeader.Modified if needed (same in recent Go)
-			if !f.FileHeader.Modified.IsZero() {
-				return f.FileHeader.Modified.UTC(), nil
-			}
 			break
 		}
 	}
