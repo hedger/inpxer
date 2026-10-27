@@ -20,13 +20,49 @@ full_url = "http://localhost:8080"
 # storage backend. possible values: bolt, badger. default: badger. might be usefult for 32 bit systems
 # storage = "bolt"
 
-# format converters. can be as many as you want
+# format converters. can be as many as you want.
+#
+# The Docker image ships fb2cng (command `fbc`), which converts FB2 to EPUB,
+# KEPUB, AZW8/KFX, PDF, TXT and Markdown. For standalone installs download the
+# binary from https://github.com/rupor-github/fb2cng/releases and put it in PATH.
+# Uncomment the formats you want to expose.
+#
 #[[converters]]
 ## source file extension
 #from = "fb2"
 ## target file extension
 #to = "epub"
 ## converter executable
-#command = "fb2epub"
-## converter arguments. {from} becomes source file path, {to} - output file path, {to_dir} - output directory (for fb2converter)
-#arguments = "{from} {to}"
+#command = "fbc"
+## converter arguments. {from} becomes source file path, {to} - output file path, {to_dir} - output directory
+#arguments = "convert --to epub2 --output-file {to} {from}"
+#
+#[[converters]]
+#from = "fb2"
+#to = "kepub.epub"
+#command = "fbc"
+#arguments = "convert --to kepub --output-file {to} {from}"
+#
+#[[converters]]
+#from = "fb2"
+#to = "azw8"
+#command = "fbc"
+#arguments = "convert --to azw8 --output-file {to} {from}"
+#
+#[[converters]]
+#from = "fb2"
+#to = "pdf"
+#command = "fbc"
+#arguments = "convert --to pdf --output-file {to} {from}"
+#
+#[[converters]]
+#from = "fb2"
+#to = "txt"
+#command = "fbc"
+#arguments = "convert --to txt --output-file {to} {from}"
+#
+#[[converters]]
+#from = "fb2"
+#to = "md"
+#command = "fbc"
+#arguments = "convert --to md --output-file {to} {from}"

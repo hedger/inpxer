@@ -21,14 +21,18 @@ var BuildDate = time.Now()
 func init() {
 	_ = mime.AddExtensionType(".azw", "application/vnd.amazon.ebook")
 	_ = mime.AddExtensionType(".azw3", "application/vnd.amazon.ebook")
+	_ = mime.AddExtensionType(".azw8", "application/vnd.amazon.ebook")
+	_ = mime.AddExtensionType(".kfx", "application/x-kfx")
 	_ = mime.AddExtensionType(".mobi", "application/x-mobipocket-ebook")
 	_ = mime.AddExtensionType(".epub", "application/epub+zip")
+	_ = mime.AddExtensionType(".kepub.epub", "application/epub+zip")
 	_ = mime.AddExtensionType(".fb2", "application/fb2")
 	_ = mime.AddExtensionType(".fb2.zip", "application/fb2+zip")
 	_ = mime.AddExtensionType(".cbz", "application/x-cbz")
 	_ = mime.AddExtensionType(".cbr", "application/x-cbr")
 	_ = mime.AddExtensionType(".djv", "image/x-djvu")
 	_ = mime.AddExtensionType(".djvu", "image/x-djvu")
+	_ = mime.AddExtensionType(".md", "text/markdown")
 }
 
 func Run(cfg *config.MyConfig, isDevMode bool, version string) error {

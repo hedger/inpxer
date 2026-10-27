@@ -153,7 +153,14 @@ func (h *DownloadHandler) DownloadConverted(w http.ResponseWriter, r *http.Reque
 		}
 	}
 
-	outDir := os.TempDir()
+	outDir, err := os.MkdirTemp("", "inpxer-convert-*")
+	if err != nil {
+		log.Printf("Error creating temp dir: %v", err)
+		internalServerError(w)
+		return
+	}
+	defer os.RemoveAll(outDir)
+
 	outFilename := filepath.Join(outDir, book.LibId+"."+converter.To)
 	if strings.Contains(converter.Arguments, "{to_dir}") {
 		baseFilename := filepath.Base(filename)
@@ -171,7 +178,6 @@ func (h *DownloadHandler) DownloadConverted(w http.ResponseWriter, r *http.Reque
 		notFound(w, id)
 		return
 	}
-	defer os.Remove(outFilename)
 
 	log.Printf("Serving converted file from: %s", outFilename)
 	addFilenameToHeader(w, book.Title, book.LibId+"."+converter.To)
